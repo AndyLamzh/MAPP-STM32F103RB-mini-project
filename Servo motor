@@ -1,0 +1,50 @@
+#undef __ARM_FP
+#include "mbed.h"
+#define WAIT_TIME_MS_0 2000 //sleep enough time to allow motor turns to the preferred position
+
+#define PERIOD_WIDTH 20 //period in ms according to the servo motor datasheet
+#define PULSE_WIDTH_90_DEGREE 2400 //pulse width in us to move to 90 degree position
+#define PULSE_WIDTH_0_DEGREE 1500 //pulse width in us to move to 0 position
+#define PULSE_WIDTH_N_90_DEGREE 600 //pulse width in us to move to -90 degree position
+
+PwmOut motor(PA_7);
+DigitalIn button_PC12 (PC_12);
+DigitalIn button_PA15 (PA_15);
+int main()
+{
+//specify period first
+motor.period_ms(PERIOD_WIDTH); //period according to the specification, e.g., 20ms
+motor.pulsewidth_us(PULSE_WIDTH_0_DEGREE); //to 0 position, at the middle
+printf("Move to 0 position: Middle\n");
+thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
+
+while (button_PC12 == 1); //wait for pressing button
+while (button_PC12 == 0); //wait for releasing button
+
+motor.pulsewidth_us(PULSE_WIDTH_90_DEGREE); //to 90 degree to the right
+printf("Move to 90 degree position: Right\n");
+thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
+
+while (button_PA15 == 1); //wait for pressing button
+while (button_PA15 == 0); //wait for releasing button
+
+motor.pulsewidth_us(PULSE_WIDTH_N_90_DEGREE); //to -90 degree to the left
+printf("Move to -90 degree position: Left\n");
+thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
+
+while (button_PC12 == 1); //wait for pressing button
+while (button_PC12 == 0); //wait for releasing button
+
+motor.pulsewidth_us(PULSE_WIDTH_90_DEGREE); //to 90 degree to the right
+printf("Move to 90 degree position: Right\n");
+thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
+
+while (button_PA15 == 1); //wait for pressing button
+while (button_PA15 == 0); //wait for releasing button
+
+motor.pulsewidth_us(PULSE_WIDTH_N_90_DEGREE); //to -90 degree to the left
+printf("Move to -90 degree position: Left\n");
+thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
+motor.suspend();
+while (true);
+}//main
