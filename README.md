@@ -1,6 +1,6 @@
 Components:
-LDR                        x
-Ultrasonic sensor          x
+LDR                        ✓
+Ultrasonic sensor          ✓
 Servo motor                ✓
 Bluetooth                  ✓
 Buzzer                     x
