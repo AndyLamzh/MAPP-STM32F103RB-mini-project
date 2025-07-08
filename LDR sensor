@@ -1,0 +1,38 @@
+#undef __ARM_FP
+#include "mbed.h"
+#define WAIT_TIME_MS_0 100
+#define WAIT_TIME_MS_1 50
+
+//input of IR sensor data
+DigitalIn LDRSensor_DO(PD_2);
+AnalogIn LDRSensor_AO(PA_0);
+//turn on/off the on-board LED: PB14 to indicate LDR Sensor DO
+DigitalOut LED_PB14(PB_14);
+float LDR_AO_voltage = 0.0;
+
+int main()
+{
+LED_PB14 = 0;
+LDRSensor_AO.set_reference_voltage(3.3f);
+while (true)
+{
+if (LDRSensor_DO.read() == 1)
+{
+// in Dark environment
+printf("In Dark!\n");
+LED_PB14 = 1;
+thread_sleep_for(WAIT_TIME_MS_0);
+}
+else
+{
+//printf("In Light!\n");
+LED_PB14 = 0;
+thread_sleep_for(WAIT_TIME_MS_1);
+}
+
+LDR_AO_voltage = LDRSensor_AO.read();
+LDR_AO_voltage = LDR_AO_voltage * 3.3;
+printf("LDR output value: %.3f V\n", LDR_AO_voltage);
+thread_sleep_for(WAIT_TIME_MS_0);
+}
+}
