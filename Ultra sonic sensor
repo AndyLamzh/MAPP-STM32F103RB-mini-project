@@ -38,8 +38,7 @@ while (Echo == 0); //wait until Echo becomes high
 while ( (Echo == 1) && (Count < 200) )
 {
 
-wait_us(WAIT_TIME_US_2); //delay 58us which is almost 1cm in measurement:
-(0.03432 cm/us x 58us) / 2 = 0.99528 cm
+wait_us(WAIT_TIME_US_2); //delay 58us which is almost 1cm in measurement:(0.03432 cm/us x 58us) / 2 = 0.99528 cm
 Count ++; //counts up if echo signal keeps high.
 //However, 200 counts is equal to 11.6ms which limits the max measurable distance is 2m in this sample code
 }
