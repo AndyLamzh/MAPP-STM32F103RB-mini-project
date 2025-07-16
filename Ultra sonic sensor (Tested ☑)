@@ -20,7 +20,8 @@ DigitalIn Echo(PC_6);
 //turn on/off the on-board LED: PB14
 DigitalOut LED_PB14(PB_14);
 unsigned char Count = 0;
-int objDistance = 0;
+float objDistance=0.0;
+//int objDistance;
 void BlinkLED(int interval, int period); //blink LED, interval is the delay time to toggle the LED, period is how long to blink LED
 
 int main()
@@ -42,9 +43,9 @@ int main()
             //However, 200 counts is equal to 11.6ms which limits the max measurable distance is 2m in this sample code
         }
         if (Echo == 1) //if obstacle is more than 2m away, consider no obstacle is detected
-        continue;
-        objDistance = (0.03432*58*Count)/2;
-        printf ("Obstacle is %d cm away!\n", objDistance);
+            continue;
+        objDistance = (0.03432 * 58 * Count) / 2;
+        printf("Obstacle is %.2f cm away!\n", objDistance);
         if (Count < 30) //if obstacle is quite near, like 30cm
         {
             //blink LED PB14 with high frequency
@@ -71,3 +72,4 @@ void BlinkLED(int interval, int period)
         thread_sleep_for(interval);
     }
 }
+
