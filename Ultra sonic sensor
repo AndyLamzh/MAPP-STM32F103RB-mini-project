@@ -20,7 +20,7 @@ DigitalIn Echo(PC_6);
 //turn on/off the on-board LED: PB14
 DigitalOut LED_PB14(PB_14);
 unsigned char Count = 0;
-float objDistance = 0;
+int objDistance = 0;
 void BlinkLED(int interval, int period); //blink LED, interval is the delay time to toggle the LED, period is how long to blink LED
 
 int main()
@@ -44,7 +44,7 @@ int main()
         if (Echo == 1) //if obstacle is more than 2m away, consider no obstacle is detected
         continue;
         objDistance = (0.03432*58*Count)/2;
-        printf ("Obstacle is %.2f cm away!\n", objDistance);
+        printf ("Obstacle is %d cm away!\n", objDistance);
         if (Count < 30) //if obstacle is quite near, like 30cm
         {
             //blink LED PB14 with high frequency
