@@ -1,0 +1,26 @@
+#include "mbed.h"
+
+// Buzzer connected to PA_5 (can change later)
+DigitalOut buzzer(PA_5);
+bool floodDetected = false;
+// Function to simulate flood detection
+bool isFlood() {
+    // Placeholder logic: replace with sensor input later
+    return floodDetected;
+}
+
+int main() {
+    printf("Flood Alert System - Buzzer Test\n");
+
+    while (true) {
+        if (isFlood()) {
+            buzzer = 1;  // Turn buzzer ON
+        } else {
+            buzzer = 0;  // Turn buzzer OFF
+        }
+
+        // toggling flood condition every 5 seconds (testing)
+        ThisThread::sleep_for(5s);
+        floodDetected = !floodDetected;
+    }
+}
