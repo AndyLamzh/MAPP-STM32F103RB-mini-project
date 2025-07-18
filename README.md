@@ -1,4 +1,4 @@
-Components: 
+#Components: 
 
 LDR                      (pins= PD_2,PA_0,PB_14)                              ✓;
 
