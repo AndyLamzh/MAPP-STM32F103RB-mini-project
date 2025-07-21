@@ -1,7 +1,7 @@
 #include "mbed.h"
 
-// Buzzer connected to PA_5 (can change later)
-DigitalOut buzzer(PA_5);
+// Buzzer connected to PB_11 (can change later)
+DigitalOut buzzer(PB_11);
 bool floodDetected = false;
 // Function to simulate flood detection
 bool isFlood() {
