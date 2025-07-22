@@ -1,1 +1,93 @@
+/*
+note: no code for water level has not been added
+*\
+#undef __ARM_FP
+#include "mbed.h"
+#include <stdio.h>  //for both bluetooth
+#include <string.h> //for both bluetooth
 
+//------------------------------------------------------------------------------------
+//definitions
+//Bluetooth-------------------------------------------
+#define MAXIMUM_BUFFER_SIZE 256
+#define UART1_TX PB_6
+#define UART1_RX PB_7
+#define UART2_TX PA_2
+#define UART2_RX PA_3
+#define UART3_TX PC_10
+#define UART3_RX PC_11
+// Create a BufferedSerial object with a default baud rate.
+static BufferedSerial serial_port(UART3_TX, UART3_RX);
+//static BufferedSerial serial_port(UART2_TX, UART2_RX);
+//LDR--------------------------------------------------
+#define WAIT_TIME_MS_0 100  
+#define WAIT_TIME_MS_1 50   
+//servo motor
+#define WAIT_TIME_MS_2 2000 //sleep enough time to allow motor turns to the preferred position
+#define PERIOD_WIDTH 20 //period in ms according to the servo motor datasheet
+#define PULSE_WIDTH_90_DEGREE 2400 //pulse width in us to move to 90 degree position
+#define PULSE_WIDTH_0_DEGREE 1500 //pulse width in us to move to 0 position
+#define PULSE_WIDTH_N_90_DEGREE 600 //pulse width in us to move to -90 degree position
+//ultrasonic sensor-----------------------------------
+#define WAIT_TIME_US_0 10   
+#define WAIT_TIME_US_1 20
+#define WAIT_TIME_US_2 58
+#define WAIT_TIME_MS_3 25   //originally MS_0
+#define WAIT_TIME_MS_4 30   //originally MS_1
+#define WAIT_TIME_MS_5 100  //originally MS_2
+#define WAIT_TIME_MS_6 300  //originally MS_3
+#define WAIT_TIME_MS_7 500  //originally MS_4
+#define WAIT_TIME_MS_8 1000 //originally MS_5
+#define WAIT_TIME_MS_9 2000 //originally MS_6
+#define WAIT_TIME_MS_10 3000 //originally MS_7
+#define WAIT_TIME_MS_11 4000 //originally MS_8 
+
+//----------------------------------------------------------------------------------
+//setting IO pins
+//LED pins-------------------------------------------
+DigitalOut LED_PB14(PB_14);          
+static DigitalOut led_PB15(PB_15);
+//Buttons---------------------------------------------
+DigitalIn button_PC12 (PC_12);       //used by motor only
+DigitalIn button_PA15 (PA_15);
+//ze bluetooth dvice is ready to pair ----------------
+//PB_14-> send data, PB_15-> receive data
+//LDR sensor ------------------------------------------
+//input of IR sensor data
+DigitalIn LDRSensor_DO(PD_2);
+AnalogIn LDRSensor_AO(PA_0);
+//turn on/off the on-board LED: PB14 to indicate LDR Sensor DO
+//Servo motor------------------------------------------
+PwmOut motor(PA_7);
+//ultra sonic sensor------------------------------------
+//input of IR sensor data
+DigitalOut Trig(PC_5);
+DigitalIn Echo(PC_6);
+//turn on/off the on-board LED: PB14
+//Buzzer-------------------------------------------------
+// Buzzer connected to PB_11 (can change later)
+DigitalOut buzzer(PB_11);
+
+//------------------------------------------------------------------------------------
+//Data
+//Bluetooth----------------------------------------------
+char bufRx[MAXIMUM_BUFFER_SIZE] = {0};
+char bufTx[MAXIMUM_BUFFER_SIZE] = {0};
+char bufCommand[MAXIMUM_BUFFER_SIZE] = {0};
+char Msg_Connection_Closed[] = "Wrong Command!\r\nConnection is Closed!\r\n";
+char Msg_WrongCommand[] = "Wrong Command!\r\nPlease key in again!\r\n";
+uint32_t num1 = 0, num2 = 0, num3 = 0, num4 = 0;
+char commandReceived = 0;
+bool commandFound = false;
+bool connectionClosed = false;
+//LDR-----------------------------------------------------
+float LDR_AO_voltage = 0.0;
+//Ultrasonic sensor---------------------------------------
+unsigned char Count = 0;
+float objDistance=0.0;
+//int objDistance;
+//Buzzer---------------------------------------------------
+bool floodDetected = false;
+
+//--------------------------------------------------------------------------------------
+//declare any functions:
