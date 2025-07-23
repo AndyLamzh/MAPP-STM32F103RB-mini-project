@@ -1,6 +1,6 @@
 /*
 note: no code for water level has not been added
-*\
+*/
 #undef __ARM_FP
 #include "mbed.h"
 #include <stdio.h>  //for both bluetooth
@@ -91,3 +91,159 @@ bool floodDetected = false;
 
 //--------------------------------------------------------------------------------------
 //declare any functions:
+void UpdateClient(char chCommand){      //for bluetooth-----------------------
+  snprintf (bufTx, sizeof(bufTx), "Command: %c is done!\r\n", chCommand);
+  num1 = serial_port.write(bufTx, strlen(bufTx));
+  if (num1)
+  {
+    // Toggle the LED.
+    LED_PB14 = !LED_PB14;
+    //printf ("Send %d characters to client.\n", num1);
+  }
+  thread_sleep_for(500);
+}
+void Error_Msg(char * pMsg){            //for bluetooth--------------------------
+  strcpy(bufTx, pMsg);
+  num1 = serial_port.write(bufTx, strlen(bufTx));
+  if (num1)
+  {
+    // Toggle the LED.
+    LED_PB14 = !LED_PB14;
+    //printf ("Send %d characters to client.\n", num1);
+  }
+  thread_sleep_for(500);
+}
+void LDR sensor(){                     //for LDR-----------------------------------
+  LED_PB14 = 0;
+  LDRSensor_AO.set_reference_voltage(3.3f);
+  while (true)
+  {
+    if (LDRSensor_DO.read() == 1)
+    {
+      // in Dark environment
+      printf("In Dark!\n");
+      LED_PB14 = 1;
+      thread_sleep_for(WAIT_TIME_MS_0);
+    }
+    else
+    {
+      //printf("In Light!\n");
+      LED_PB14 = 0;
+      thread_sleep_for(WAIT_TIME_MS_1);
+    }
+
+    LDR_AO_voltage = LDRSensor_AO.read();
+    LDR_AO_voltage = LDR_AO_voltage * 3.3;
+    printf("LDR output value: %.3f V\n", LDR_AO_voltage);
+    thread_sleep_for(WAIT_TIME_MS_0);
+  }
+}
+void ServoMotor(){                     //for servo motor---------------------------
+  //specify period first
+  motor.period_ms(PERIOD_WIDTH); //period according to the specification, e.g., 20ms
+  motor.pulsewidth_us(PULSE_WIDTH_0_DEGREE); //to 0 position, at the middle
+  printf("Move to 0 position: Middle\n");
+  thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
+
+  while (button_PC12 == 1); //wait for pressing button
+  while (button_PC12 == 0); //wait for releasing button
+
+  motor.pulsewidth_us(PULSE_WIDTH_90_DEGREE); //to 90 degree to the right
+  printf("Move to 90 degree position: Right\n");
+  thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
+
+  while (button_PA15 == 1); //wait for pressing button
+  while (button_PA15 == 0); //wait for releasing button
+
+  motor.pulsewidth_us(PULSE_WIDTH_N_90_DEGREE); //to -90 degree to the left
+  printf("Move to -90 degree position: Left\n");
+  thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
+
+  while (button_PC12 == 1); //wait for pressing button
+  while (button_PC12 == 0); //wait for releasing button
+
+  motor.pulsewidth_us(PULSE_WIDTH_90_DEGREE); //to 90 degree to the right
+  printf("Move to 90 degree position: Right\n");
+  thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
+
+  while (button_PA15 == 1); //wait for pressing button
+  while (button_PA15 == 0); //wait for releasing button
+
+  motor.pulsewidth_us(PULSE_WIDTH_N_90_DEGREE); //to -90 degree to the left
+  printf("Move to -90 degree position: Left\n");
+  thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
+  motor.suspend();
+  while (true);
+}
+void BlinkLED(int interval, int period)    //for ultrasonic-----------------------
+{
+    int loopCount = period / interval;
+    for (int i = 0; i < loopCount; i ++)
+    {
+        LED_PB14 = !LED_PB14;
+        thread_sleep_for(interval);
+    }
+}
+void Ultrasonic(){                     //for ultrasonic----------------------------
+  while (true)
+  {
+    LED_PB14 = 0;
+    Count = 0;
+    Trig = 0; //drag the trigger signal to low first
+    thread_sleep_for(WAIT_TIME_MS_1); //maintain at low for a while
+    Trig = 1;
+    wait_us(WAIT_TIME_US_1); //minimum 10us, here we apply 20us
+    Trig = 0;
+    while (Echo == 0); //wait until Echo becomes high
+    while ( (Echo == 1) && (Count < 200) )
+    {
+      wait_us(WAIT_TIME_US_2); //delay 58us which is almost 1cm in measurement:(0.03432 cm/us x 58us) / 2 = 0.99528 cm
+      Count ++; //counts up if echo signal keeps high.
+      //However, 200 counts is equal to 11.6ms which limits the max measurable distance is 2m in this sample code
+    }
+    if (Echo == 1) //if obstacle is more than 2m away, consider no obstacle is detected
+      continue;
+    objDistance = (0.03432 * 58 * Count) / 2;
+    printf("Obstacle is %.2f cm away!\n", objDistance);
+    if (Count < 30) //if obstacle is quite near, like 30cm
+    {
+      //blink LED PB14 with high frequency
+      BlinkLED(WAIT_TIME_MS_2, WAIT_TIME_MS_5); //internal 100ms, totoal time 1s
+    }
+    else if (Count < 60) //if obstracle is near, like 60cm
+    {
+      //blink LED PB14 with medium frequency
+      BlinkLED(WAIT_TIME_MS_3, WAIT_TIME_MS_6); //internal 300ms, totoal time 2s
+    }
+    else //if obstracle is not near
+    {
+      //blink LED PB14 with low frequency
+      BlinkLED(WAIT_TIME_MS_5, WAIT_TIME_MS_7); //internal 1000ms, totoal time 2s
+    }
+  }
+}
+void buzzer(){                          //buzzer------------------------------------
+  printf("Softer Buzzer Demo\n");
+
+  // buzzer frequency~400Hz
+  buzzer.period(0.0025);  // 2.5ms = 400Hz
+
+  while (true) {
+    if (floodDetected) {
+    
+      buzzer.write(0.1); 
+      printf("Buzzer ON (soft)\n");
+    } 
+    else 
+    {
+      buzzer.write(0.0);  // OFF
+      printf("Buzzer OFF\n");
+    }
+    ThisThread::sleep_for(1s);
+    }
+}
+
+//-----------------------------------------------------------------------------------------------------
+int main(){
+
+}
