@@ -222,7 +222,7 @@ void Ultrasonic(){                     //for ultrasonic-------------------------
     }
   }
 }
-void buzzer(){                          //buzzer------------------------------------
+void Buzzer(){                          //buzzer------------------------------------
   printf("Softer Buzzer Demo\n");
 
   // buzzer frequency~400Hz
