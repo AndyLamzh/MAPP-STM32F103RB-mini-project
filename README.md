@@ -1,6 +1,6 @@
 Components: 
 
-LDR                      (pins= PD_2,PA_0,PB_14)                              ✓;
+LDR                      (pins= PD_2,PA_0,PB_14)                              ✓; (may not be used)
 
 Ultrasonic sensor        (pins= PC_5,PC_6,PB_14)                              ☑;
 
