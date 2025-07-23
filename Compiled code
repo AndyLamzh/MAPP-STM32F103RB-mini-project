@@ -113,7 +113,7 @@ void Error_Msg(char * pMsg){            //for bluetooth-------------------------
   }
   thread_sleep_for(500);
 }
-void LDR sensor(){                     //for LDR-----------------------------------
+void LDR_sensor(){                     //for LDR-----------------------------------
   LED_PB14 = 0;
   LDRSensor_AO.set_reference_voltage(3.3f);
   while (true)
