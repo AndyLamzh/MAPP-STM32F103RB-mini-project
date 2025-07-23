@@ -1,0 +1,26 @@
+#include "mbed.h"
+
+PwmOut buzzer(PA_5);
+
+// Simulated flood detection (replace with real input later)
+bool floodDetected = true;
+
+int main() {
+    printf("Softer Buzzer Demo\n");
+
+    // buzzer frequency~400Hz
+    buzzer.period(0.0025);  // 2.5ms = 400Hz
+
+    while (true) {
+        if (floodDetected) {
+    
+            buzzer.write(0.1); 
+            printf("Buzzer ON (soft)\n");
+        } else {
+            buzzer.write(0.0);  // OFF
+            printf("Buzzer OFF\n");
+        }
+
+        ThisThread::sleep_for(1s);
+    }
+}
