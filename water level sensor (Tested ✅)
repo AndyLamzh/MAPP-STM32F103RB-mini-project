@@ -1,0 +1,21 @@
+#undef __ARM_FP
+#include <stdio.h>
+#include "mbed.h"
+
+#define WAIT_TIME_MS_0 100
+
+AnalogIn WLSensor_AO(PC_3);
+DigitalIn button_PC12 (PC_12);
+DigitalOut LED_PB14(PB_14);
+float Sensor_value = 0.0;
+
+int main()
+{
+    WLSensor_AO.set_reference_voltage(3.3f);
+    while (WLSensor_AO < 2){
+        Sensor_value = WLSensor_AO.read() * 100;
+        printf("Voltage = %.3f \n",Sensor_value);
+        while(!button_PC12);
+        while(button_PC12);
+    }
+}//main
