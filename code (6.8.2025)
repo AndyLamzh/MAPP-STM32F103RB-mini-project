@@ -53,19 +53,19 @@ DigitalIn button_PA15 (PA_15);
 //PB_14-> send data, PB_15-> receive data
 //LDR sensor ------------------------------------------
 //input of IR sensor data
-DigitalIn LDRSensor_DO(PD_2);
-AnalogIn LDRSensor_AO(PA_0);
+//DigitalIn LDRSensor_DO(PD_2);
+//AnalogIn LDRSensor_AO(PA_0);
 //turn on/off the on-board LED: PB14 to indicate LDR Sensor DO
 //Servo motor------------------------------------------
 PwmOut motor(PA_7);
 //ultra sonic sensor------------------------------------
 //input of IR sensor data
-DigitalOut Trig(PC_5);
-DigitalIn Echo(PC_6);
+DigitalOut Trig(PB_3);
+DigitalIn Echo(PB_7);
 //turn on/off the on-board LED: PB14
 //Buzzer-------------------------------------------------
 // Buzzer connected to PB_11 (can change later)
-DigitalOut buzzer(PB_11);
+PwmOut buzzer(PB_11);
 //Water level sensor-------------------------------------
 AnalogIn WLSensor_AO(PC_3);
 
@@ -179,7 +179,7 @@ int BlueToooth(){                      //also for bluetooth---------------------
 return commandReceived;
 
 }
-float LDR_sensor(){                     //for LDR-----------------------------------
+/*float LDR_sensor(){                     //for LDR-----------------------------------
   LED_PB14 = 0;
   LDRSensor_AO.set_reference_voltage(3.3f);
   if (LDRSensor_DO.read() == 1){
@@ -201,7 +201,7 @@ float LDR_sensor(){                     //for LDR-------------------------------
   thread_sleep_for(WAIT_TIME_MS_0);
   return LDR_AO_voltage;
   
-}
+}*/
 void ServoMotor(int selection){                     //for servo motor---------------------------
   //specify period first
   motor.period_ms(PERIOD_WIDTH); //period according to the specification, e.g., 20ms
@@ -253,7 +253,7 @@ int Ultrasonic(){                     //for ultrasonic--------------------------
     //  objDistance = 9999;
     objDistance = (0.03432 * 58 * Count) / 2;
     printf("Obstacle is %.2f cm away!\n", objDistance);
-    if (Count < 30) //if obstacle is quite near, like 30cm
+    /*if (Count < 30) //if obstacle is quite near, like 30cm
     {
       //blink LED PB14 with high frequency
       BlinkLED(WAIT_TIME_MS_2, WAIT_TIME_MS_5); //internal 100ms, totoal time 1s
@@ -268,16 +268,17 @@ int Ultrasonic(){                     //for ultrasonic--------------------------
       //blink LED PB14 with low frequency
       BlinkLED(WAIT_TIME_MS_5, WAIT_TIME_MS_7); //internal 1000ms, totoal time 2s
       
-    }
-  return objDistance;
+    }*/
+    BlinkLED(WAIT_TIME_MS_5, WAIT_TIME_MS_7); //internal 1000ms, totoal time 2s
+    return objDistance;
 }
-void Buzzer(){                          //buzzer------------------------------------
+void Buzzer(float Volume){                          //buzzer------------------------------------
   printf("Softer Buzzer Demo\n");
 
   // buzzer frequency~400Hz
   buzzer.period(0.0025);  // 2.5ms = 400Hz
 
-  buzzer.write(1); 
+  buzzer.write(Volume); 
   printf("Buzzer ON (soft)\n");
   ThisThread::sleep_for(1s);
   buzzer.write(0.0);  // OFF
@@ -293,22 +294,33 @@ int Water_Level(){              //water level sensor----------------------------
 
 //-----------------------------------------------------------------------------------------------------
 int main(){
+ #define soft 0.005
+ #define loud 0.05
  int Flood_Level = 0;
  int Max_Ultrasonic_Distance = 10;
- int Max_Water_Level_Sensor_OP = 75;
+ int Max_Water_Level_Sensor_OP = 65;
  int hold = 0;
+ int Servo_Position = 0;
  while (true){
      Flood_Level = (Ultrasonic() <= Max_Ultrasonic_Distance)||(Water_Level()/Max_Water_Level_Sensor_OP);
+     thread_sleep_for(2000);
      if (Flood_Level >= 1){  //the Flood level is too high
          if (hold == 0){
              hold = 1;
-             Buzzer();
+             for (int i=0; i<=5; i++){
+                Buzzer(loud);
+                thread_sleep_for(2000);
+             }
              ServoMotor(1);
-             ServoMotor(2);            
+             ServoMotor(2);
+             Servo_Position = true;            
          }
      } 
      else{
-         ServoMotor(3);
+         if (Servo_Position){
+             ServoMotor(3);
+             Servo_Position = 0;
+         }
          hold = 0;
      }
  }
