@@ -45,7 +45,8 @@ static BufferedSerial serial_port(UART3_TX, UART3_RX);
 DigitalOut LED_PB14(PB_14);          
 static DigitalOut led_PB15(PB_15);
 //external LED pins-----------------------------------
-
+DigitalOut ExtLedRed(PB_4);
+DigitalOut ExtLedGreen(PB_5);
 //Buttons---------------------------------------------
 DigitalIn button_PC12 (PC_12);       //used by motor only
 DigitalIn button_PA15 (PA_15);
@@ -215,14 +216,14 @@ void ServoMotor(int selection){                     //for servo motor-----------
       printf("Move to 90 degree position: Right\n");
       thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
     }
-  else {
+  else if (selection == 3){
       motor.pulsewidth_us(PULSE_WIDTH_N_90_DEGREE); //to -90 degree to the left
       printf("Move to -90 degree position: Left\n");
       thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
     }
-  
+  else {
     motor.suspend();
-    
+  }
 }
 void BlinkLED(int interval, int period)    //for ultrasonic-----------------------
 {
@@ -308,20 +309,28 @@ int main(){
          if (hold == 0){
              hold = 1;
              for (int i=0; i<=5; i++){
-                Buzzer(loud);
-                thread_sleep_for(2000);
+                Buzzer(soft);
+                thread_sleep_for(1000);
              }
              ServoMotor(1);
+             thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
              ServoMotor(2);
-             Servo_Position = true;            
+             thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
+             Servo_Position = true;
+             ExtLedRed = 1;
+             ExtLedGreen = 0;            
          }
      } 
      else{
          if (Servo_Position){
              ServoMotor(3);
+             thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
              Servo_Position = 0;
+             ExtLedRed = 0;
+             ExtLedGreen = 1;      
          }
          hold = 0;
      }
  }
 }
+
