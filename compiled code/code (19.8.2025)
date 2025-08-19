@@ -336,14 +336,15 @@ void LCD(char messageLn1[],char messageLn2[]){   //LCD--------------------------
 
 //-----------------------------------------------------------------------------------------------------
 int main(){
-    #define soft 0.0002
+    #define soft 0.0005
     #define loud 0.005
     #define Max_Ultrasonic_Distance 3
-    #define Max_Water_Level_Sensor_OP 4
+    #define Max_Water_Level_Sensor_OP 75
 
     int Flood = 0;
     int hold = 0;
     int Servo_Position = 0;
+    int latch = 0;
     //For bluetooth------------------------------------------------
     //Bluetooth_PC11.rise(&UpdateClient);
     // Set desired properties (8-N-1).
@@ -363,10 +364,11 @@ int main(){
     lcd_init();					// Initialise LCD module
     //-------------------------------------------------------------
  while (true){   //main code
-     Flood = (Ultrasonic() <= Max_Ultrasonic_Distance)||(Water_Level()/Max_Water_Level_Sensor_OP);
+     Flood = (Ultrasonic() < Max_Ultrasonic_Distance)||(Water_Level()>Max_Water_Level_Sensor_OP);
      printf("Flood = %i\n",Flood);
      thread_sleep_for(2000);
      if (Flood >= 1){  //the Flood level is too high
+        if(latch > 2){
          if (hold == 0){
              hold = 1;
              LCD(message2,message3);
@@ -374,18 +376,22 @@ int main(){
                 Buzzer(soft);
                 thread_sleep_for(1000);
              }
-             ServoMotor(1);
+             ServoMotor(2);
              thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
-             ServoMotor(3);
+             ServoMotor(1);
              thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
              Servo_Position = true;
              ExtLedRed = 1;
              ExtLedGreen = 0;            
          }
+        }
+        else{
+             latch++;
+         }
      } 
      else{
          if (Servo_Position){
-             ServoMotor(1);
+             ServoMotor(2);
              thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
              Servo_Position = 0;
              LCD(message1,message4);
@@ -393,6 +399,7 @@ int main(){
          ExtLedRed = 0;
          ExtLedGreen = 1;      
          hold = 0;
+         latch = 0;
      }
  }
 }
