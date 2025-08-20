@@ -1,0 +1,419 @@
+#undef __ARM_FP
+#include "mbed.h"
+#include <stdio.h>  //for both bluetooth
+#include <string.h> //for both bluetooth
+
+//------------------------------------------------------------------------------------
+//definitions
+//Bluetooth-------------------------------------------
+#define MAXIMUM_BUFFER_SIZE 256
+//#define UART1_TX PB_6
+//#define UART1_RX PB_7
+//#define UART2_TX PA_2
+//#define UART2_RX PA_3
+#define UART3_TX PC_10
+#define UART3_RX PC_11
+// Create a BufferedSerial object with a default baud rate. for bluetooth
+static BufferedSerial serial_port(UART3_TX, UART3_RX);
+//static BufferedSerial serial_port(UART2_TX, UART2_RX);
+//LDR--------------------------------------------------
+#define WAIT_TIME_MS_0 100  
+#define WAIT_TIME_MS_1 50   
+//servo motor
+#define WAIT_TIME_MS_2 2000 //sleep enough time to allow motor turns to the preferred position
+#define PERIOD_WIDTH 20 //period in ms according to the servo motor datasheet
+#define PULSE_WIDTH_90_DEGREE 2400 //pulse width in us to move to 90 degree position
+#define PULSE_WIDTH_0_DEGREE 1500 //pulse width in us to move to 0 position
+#define PULSE_WIDTH_N_90_DEGREE 600 //pulse width in us to move to -90 degree position
+//ultrasonic sensor-----------------------------------
+#define WAIT_TIME_US_0 10   
+#define WAIT_TIME_US_1 20
+#define WAIT_TIME_US_2 58
+#define WAIT_TIME_MS_3 25   //originally MS_0
+#define WAIT_TIME_MS_4 30   //originally MS_1
+#define WAIT_TIME_MS_5 100  //originally MS_2
+#define WAIT_TIME_MS_6 300  //originally MS_3
+#define WAIT_TIME_MS_7 500  //originally MS_4
+#define WAIT_TIME_MS_8 1000 //originally MS_5
+#define WAIT_TIME_MS_9 2000 //originally MS_6
+#define WAIT_TIME_MS_10 3000 //originally MS_7
+#define WAIT_TIME_MS_11 4000 //originally MS_8 
+// LCD
+#include "lcd.h"	
+
+//----------------------------------------------------------------------------------
+//setting IO pins
+//internal LED pins-----------------------------------
+DigitalOut LED_PB14(PB_14);          
+static DigitalOut led_PB15(PB_15);
+//external LED pins-----------------------------------
+DigitalOut ExtLedRed(PB_4);
+DigitalOut ExtLedGreen(PB_5);
+//Buttons---------------------------------------------
+DigitalIn button_PC12 (PC_12);       //used by 
+//DigitalIn button_PA15 (PA_15);
+//ze bluetooth dvice is ready to pair ----------------
+//PB_14-> send data, PB_15-> receive data
+InterruptIn Button_PA15(PA_15);
+//LDR sensor ------------------------------------------
+//input of IR sensor data
+//DigitalIn LDRSensor_DO(PD_2);
+//AnalogIn LDRSensor_AO(PA_0);
+//turn on/off the on-board LED: PB14 to indicate LDR Sensor DO
+//Servo motor------------------------------------------
+PwmOut motor(PA_7);
+//ultra sonic sensor------------------------------------
+//input of IR sensor data
+DigitalOut Trig(PB_3);
+DigitalIn Echo(PB_7);
+//turn on/off the on-board LED: PB14
+//Buzzer-------------------------------------------------
+// Buzzer connected to PB_11 (can change later)
+PwmOut buzzer(PB_11);
+//Water level sensor-------------------------------------
+AnalogIn WLSensor_AO(PC_3);
+
+//------------------------------------------------------------------------------------
+//Data
+//Bluetooth----------------------------------------------
+char bufRx[MAXIMUM_BUFFER_SIZE] = {0};
+char bufTx[MAXIMUM_BUFFER_SIZE] = {0};
+char bufCommand[MAXIMUM_BUFFER_SIZE] = {0};
+char Msg_Connection_Closed[] = "Wrong Command!\r\nConnection is Closed!\r\n";
+char Msg_WrongCommand[] = "Wrong Command!\r\nPlease key in again!\r\n";
+uint32_t num1 = 0, num2 = 0, num3 = 0, num4 = 0;
+char commandReceived = 0;
+bool commandFound = false;
+bool connectionClosed = false;
+//LDR-----------------------------------------------------
+float LDR_AO_voltage = 0.0;
+//Ultrasonic sensor---------------------------------------
+unsigned char Count = 0;
+float objDistance=0.0;
+//int objDistance;
+//Buzzer---------------------------------------------------
+//bool floodDetected = false;
+//Water level sensor---------------------------------------
+float SensorValue = 0.0;
+//LCD------------------------------------------------------
+char message1[] = "Flood has cleared    ";
+char CHwater_level[5];
+char message2[] = "Area is flooding    ";
+char message3[] = "please stay indoors  ";
+char message4[] = ":)                  ";
+
+//--------------------------------------------------------------------------------------
+//declare any functions:
+
+/*void Error_Msg(char * pMsg){            //for bluetooth--------------------------
+  strcpy(bufTx, pMsg);
+  num1 = serial_port.write(bufTx, strlen(bufTx));
+  if (num1)
+  {
+    // Toggle the LED.
+    LED_PB14 = !LED_PB14;
+    //printf ("Send %d characters to client.\n", num1);
+  }
+  thread_sleep_for(500);
+}*/
+//void BlueTooth(void){                      //also for bluetooth---------------------       
+  // Set desired properties (8-N-1).
+  ////serial_port.set_baud(9600);
+  //serial_port.set_baud(115200);
+  //serial_port.set_baud(19200);
+  //serial_port.set_baud(38400);
+  //serial_port.set_baud(57600);
+  //serial_port.set_baud(74880);
+  ////serial_port.set_format(
+  /* bits */ //8,
+  /* parity */ //BufferedSerial::None,
+  /* stop bit */ //1
+  /*);
+  serial_port.set_flow_control(mbed::BufferedSerial::Disabled);
+ */
+ /* memset(bufRx, 0, sizeof(bufRx));
+    num2 = serial_port.read(bufRx, sizeof(bufRx));
+    if (num2)
+    {
+      printf("Command length: %d\n", num2);
+      // Toggle the LED.
+      //led_PB15 = !led_PB15;
+      bufRx[num2] = '\0';
+      printf("Command: %s\n", bufRx);
+      commandReceived = bufRx[0];
+      switch (commandReceived)
+      {
+      case '0':
+        break;
+      case '1':
+        UpdateClient(commandReceived);
+        break;
+      case '2':
+        break;
+      case '3':
+        UpdateClient(commandReceived);
+        break;
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+        //wrong command
+        Error_Msg(Msg_WrongCommand);
+        break;
+      default:
+        //CLOSE CONNECTION ??
+        connectionClosed = true;
+        Error_Msg(Msg_Connection_Closed);
+        break;
+      //thread_sleep_for(200);
+      }      
+    }
+    connectionClosed = true;
+    thread_sleep_for(100);
+  */
+//}
+/*float LDR_sensor(){                     //for LDR-----------------------------------
+  LED_PB14 = 0;
+  LDRSensor_AO.set_reference_voltage(3.3f);
+  if (LDRSensor_DO.read() == 1){
+     // in Dark environment
+     printf("In Dark!\n");
+     LED_PB14 = 1;
+     thread_sleep_for(WAIT_TIME_MS_0);
+  }
+  else
+  {
+     //printf("In Light!\n");
+     LED_PB14 = 0;
+     thread_sleep_for(WAIT_TIME_MS_1);
+  }
+
+  LDR_AO_voltage = LDRSensor_AO.read();
+  LDR_AO_voltage = LDR_AO_voltage * 3.3;
+  printf("LDR output value: %.3f V\n", LDR_AO_voltage);
+  thread_sleep_for(WAIT_TIME_MS_0);
+  return LDR_AO_voltage;
+  
+}*/
+void ServoMotor(int selection){                     //for servo motor---------------------------
+  //specify period first
+  motor.period_ms(PERIOD_WIDTH); //period according to the specification, e.g., 20ms
+  if (selection == 1){
+      motor.pulsewidth_us(PULSE_WIDTH_0_DEGREE); //to 0 position, at the middle
+      printf("Move to 0 position: Middle\n");
+      thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
+    }
+  else if (selection == 2){
+      motor.pulsewidth_us(PULSE_WIDTH_90_DEGREE); //to 90 degree to the right
+      printf("Move to 90 degree position: Right\n");
+      thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
+    }
+  else if (selection == 3){
+      motor.pulsewidth_us(PULSE_WIDTH_N_90_DEGREE); //to -90 degree to the left
+      printf("Move to -90 degree position: Left\n");
+      thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
+    }
+  else {
+    motor.suspend();
+  }
+}
+void BlinkLED(int interval, int period)    //for ultrasonic-----------------------
+{
+    int loopCount = period / interval;
+    for (int i = 0; i < loopCount; i ++)
+    {
+        LED_PB14 = !LED_PB14;
+        thread_sleep_for(interval);
+    }
+}
+int Ultrasonic(){                     //for ultrasonic----------------------------
+
+    LED_PB14 = 0;
+    Count = 0;
+    Trig = 0; //drag the trigger signal to low first
+    thread_sleep_for(WAIT_TIME_MS_1); //maintain at low for a while
+    Trig = 1;
+    wait_us(WAIT_TIME_US_1); //minimum 10us, here we apply 20us
+    Trig = 0;
+    while (Echo == 0); //wait until Echo becomes high
+    while ( (Echo == 1) && (Count < 200) )
+    {
+      wait_us(WAIT_TIME_US_2); //delay 58us which is almost 1cm in measurement:(0.03432 cm/us x 58us) / 2 = 0.99528 cm
+      Count ++; //counts up if echo signal keeps high.
+      //However, 200 counts is equal to 11.6ms which limits the max measurable distance is 2m in this sample code
+    }
+    //if (Echo == 1) //if obstacle is more than 2m away, consider no obstacle is detected
+    //  objDistance = 9999;
+    objDistance = (0.03432 * 58 * Count) / 2;
+    printf("Obstacle is %.2f cm away!\n", objDistance);
+    /*if (Count < 30) //if obstacle is quite near, like 30cm
+    {
+      //blink LED PB14 with high frequency
+      BlinkLED(WAIT_TIME_MS_2, WAIT_TIME_MS_5); //internal 100ms, totoal time 1s
+    }
+    else if (Count < 60) //if obstracle is near, like 60cm
+    {
+      //blink LED PB14 with medium frequency
+      BlinkLED(WAIT_TIME_MS_3, WAIT_TIME_MS_6); //internal 300ms, totoal time 2s
+    }
+    else //if obstracle is not near
+    {
+      //blink LED PB14 with low frequency
+      BlinkLED(WAIT_TIME_MS_5, WAIT_TIME_MS_7); //internal 1000ms, totoal time 2s
+      
+    }*/
+    //BlinkLED(WAIT_TIME_MS_5, WAIT_TIME_MS_7); //internal 1000ms, totoal time 2s
+    return objDistance;
+}
+void Buzzer(float Volume){      //buzzer-----------------------------------------
+  printf("Softer Buzzer Demo\nBuzzer ON");
+
+  // buzzer frequency~400Hz
+  buzzer.period(0.0025);  // 2.5ms = 400Hz
+
+  buzzer.write(Volume); 
+  //printf("Buzzer ON \n");
+  thread_sleep_for(1000);
+  buzzer.write(0.0);  // OFF
+  printf("Buzzer OFF\n");
+}
+
+int Water_Level(){              //water level sensor-------------------------------
+  WLSensor_AO.set_reference_voltage(5.0f);
+  SensorValue = WLSensor_AO.read() * 100;
+  printf("Water level = %.3f \n",SensorValue);
+  return SensorValue; //0 = dry, 100 = fully submerged
+}
+void LCD(char messageLn1[],char messageLn2[]){   //LCD---------------------------
+
+    char message2[] = "Area is flooding";
+    char message3[] = "please stay indoors";
+    char message_Clear[]="";
+    unsigned char OP,i;
+
+    lcd_write_cmd(0x80); // Move cursor to line 1 position 1
+    for (i=0;i<20;i++)
+    {
+        OP = messageLn1[i];
+        lcd_write_data(OP);
+
+    }
+    
+    lcd_write_cmd(0xC0); // Moves cursor to line 2 position 1
+    for (i=0;i<20;i++)
+    {
+
+        OP = messageLn2[i];
+        lcd_write_data(OP);
+    }
+
+}
+
+/*void UpdateClient(char chCommand){      //for bluetooth-----------------------
+  float Water_LV = 0.0;
+  #define Max_Ultrasonic_Distance 3
+  #define Max_Water_Level_Sensor_OP 4
+  Water_LV= (Ultrasonic() <= Max_Ultrasonic_Distance)||(Water_Level()/Max_Water_Level_Sensor_OP);
+  //snprintf (bufTx, sizeof(bufTx), "Command: %c is done!\r\n", chCommand);
+  if (Water_LV)
+  {
+    snprintf (bufTx, sizeof(bufTx), "There is currently a flood");
+  }
+  else
+  {
+    snprintf (bufTx, sizeof(bufTx), "No flood");
+  }
+  num1 = serial_port.write(bufTx, strlen(bufTx));
+  if (num1)
+  {
+    // Toggle the LED.
+    LED_PB14 = !LED_PB14;
+    //printf ("Send %d characters to client.\n", num1);
+  }
+  thread_sleep_for(500);
+}*/
+void stop(){
+    printf("Emergency stop activated\n");
+    while(button_PC12 == 0);
+    while(button_PC12 == 1);
+}
+
+//-----------------------------------------------------------------------------------------------------
+int main(){
+    #define soft 0.02
+    #define loud 0.05
+    #define Max_Ultrasonic_Distance 3
+    #define Max_Water_Level_Sensor_OP 75
+
+    int Flood = 0;
+    int hold = 0;
+    int Servo_Position = 0;
+    int latch = 0;
+    int latch2 = 0;
+    //For bluetooth------------------------------------------------
+    Button_PA15.fall(&stop);
+    // Set desired properties (8-N-1).
+    serial_port.set_baud(9600);
+    //serial_port.set_baud(115200);
+    //serial_port.set_baud(19200);
+    //serial_port.set_baud(38400);
+    //serial_port.set_baud(57600);
+    //serial_port.set_baud(74880);
+    serial_port.set_format(
+    /* bits */ 8,
+    /* parity */ BufferedSerial::None,
+    /* stop bit */ 1
+    );
+    serial_port.set_flow_control(mbed::BufferedSerial::Disabled);
+    //
+    lcd_init();					// Initialise LCD module
+    //-------------------------------------------------------------
+ while (true){   //main code
+     Flood = (Ultrasonic() < Max_Ultrasonic_Distance)||(Water_Level()>Max_Water_Level_Sensor_OP);
+     Flood = Flood ||!button_PC12;
+     printf("Flood = %i\n",Flood);
+     thread_sleep_for(2000);
+     if (Flood >= 1){  //the Flood level is too high
+        if(latch > 2){
+         if (hold == 0){
+             hold = 1;
+             LCD(message2,message3);
+             for (int i=0; i<=5; i++){
+                Buzzer(soft);
+                thread_sleep_for(500);
+             }
+             ServoMotor(2);
+             thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
+             ServoMotor(1);
+             thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
+             Servo_Position = true;
+             ExtLedRed = 1;
+             ExtLedGreen = 0;            
+         }
+        }
+        else{
+             latch++;
+         }
+         latch2 = 0;
+     } 
+     else{
+         if (latch2 > 2){
+            if (Servo_Position){
+                ServoMotor(2);
+                thread_sleep_for(WAIT_TIME_MS_0); //wait for the motor moving to the position
+                Servo_Position = 0;
+                LCD(message1,message4);
+            }
+            ExtLedRed = 0;
+            ExtLedGreen = 1;      
+            hold = 0;
+            latch = 0;
+         }
+         else{
+             latch2++;
+         }
+     }
+ }
+}
